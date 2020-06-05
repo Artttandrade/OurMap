@@ -13,7 +13,7 @@ const app = express();
 const server = http.Server(app);
 const io = socketio(server);
 
-app.use(favicon('favicon.ico'));
+//app.use(favicon('favicon.ico'));
 app.use(express.static('src'));
 
 function getCoodinates(sqlQuery, socket){
