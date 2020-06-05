@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>OurMap</title>
+    <link rel="icon" href="favicon.ico" />
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      #container {
+        height: 550px;
+        padding: 0;
+        margin: 0;
+        display: flex;
+      }
+      .info {
+        float: left;
+        padding: 0px 20px 0px 20px;
+        height: 550px;
+        width: 300px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+        margin-left: 30px;
+        margin-right: 40px;
+        background-color: white;
+        border-radius: 10px;
+      }
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #map {
+        margin-top: 10px;
+        height: 550px;
+        width: 67%;
+        border-radius: 10px;
+      }
+
+      img{
+        display: block;
+        margin-top: 10px;
+        margin-left: auto;
+        margin-right: auto;
+        height: 60px;
+        width: 60px;
+      }
+
+      h1{
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      input{
+        height: 30px;
+        width: 200px;
+        border-radius: 1px;
+        border-color:lightgrey;
+        border-width: 1px;
+        padding: 0px 10px;
+        display: none;
+      }
+      input + input {
+        margin-top: 10px;
+        background-color: lightgrey;
+        border-radius: 8px;
+        outline: none;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 90%;
+        margin: 0;
+        padding: 0;
+        background-color: lightblue;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div class="info-container">
+        
+        <div class="info">
+          <img src="http://arttandrade.ddns.net:3232/world.png" >
+          <input type="hidden" id="id" value="">
+          <h1 id="nome">"Vamos Navegar"</h1>
+          <input id="input" type="text" autocomplete="off" placeholder="Nome">
+          <input id="button" type="button" value="Salvar" onclick="" >
+          <input id="edit" type="button" value="Editar" onclick="" >
+          <input id="delete" type="button" value="Deletar" onclick="" >
+        </div> 
+      </div>
+      <div id="map"></div>  
+    </div>
+    
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDIJ9XX2ZvRKCJcFRrl-lRanEtFUow4piM&callback=initMap&libraries=places"
+    async defer></script>
+    <script>
+
+    var socket = io.connect();
+
+    document.getElementById('button').onclick = function(){
+      var name = document.getElementById('input').value;
+      var id = document.getElementById('id').value;
+      console.log(id);
+      socket.emit('setName', { name, id });
+      document.getElementById('input').value = '';
+      document.getElementById('input').style.display = 'none';
+      document.getElementById('button').style.display = 'none';
+      document.getElementById('nome').innerHTML = name;
+    }
+
+    document.getElementById('edit').onclick = function(){
+      document.getElementById('input').style.display = 'block';
+      document.getElementById('button').style.display = 'block';
+      console.log(document.getElementById('nome'))
+      document.getElementById('input').value = document.getElementById('nome').innerHTML;
+      document.getElementById('edit').style.display = 'none';
+    }
+
+    
+
+    var map;
+
+    var markers = []
+    function initMap() {
+
+        options = {
+            zoom:5,
+            //-13.809330, -49.732220
+            center:{lat: -13.809330, lng: -49.732220},
+        }
+
+        map = new google.maps.Map(document.getElementById('map'), options);   
+        
+
+        google.maps.event.addListener(map, 'click', function(event){
+            //placeMarker(event.latLng);
+            document.getElementById('nome').innerHTML = 'Dê um nome:';
+            document.getElementById('input').style.display = 'block';
+            document.getElementById('button').style.display = 'block';
+            socket.emit('location', event.latLng)
+        });
+
+        socket.on('locate', function(e){
+            var i = 0;
+            var j = 0;
+            var length = markers.length;
+
+            for(j=0; j<markers.length; j++){
+              console.log('??' + markers[j])
+              markers[j].setMap(null);
+            }
+            markers = [];
+            console.log('markers: ' + markers.length);
+            for(i in e){
+                
+                placeMarkerSaved(e[i]);
+                document.getElementById('id').value = e[i].id;
+            }
+            console.log(e[i] === null);
+              
+        });
+
+        socket.on("newLocation", function(e){
+            placeMarker(e);
+        });
+
+        function placeMarkerSaved(location){
+            var marker = new google.maps.Marker({
+                position: { lat: location.lat, lng: location.lng },
+                map: map,
+                name: location.name,
+                id: location.id
+            });
+
+            markers.push(marker);
+
+            marker.addListener('click', function(){
+                //infoWindow.open(map, marker);
+                console.log(marker.id);
+                if(marker.name === null || marker.name === ''){
+                  document.getElementById('nome').innerHTML = 'Dê um nome:';
+                  document.getElementById('id').value = marker.id;
+                  document.getElementById('input').style.display = 'block';
+                  document.getElementById('button').style.display = 'block';
+                  document.getElementById('delete').style.display = 'block';
+                }else{
+                  document.getElementById('nome').innerHTML = marker.name;
+                  document.getElementById('id').value = marker.id;
+                  document.getElementById('input').style.display = 'none';
+                  document.getElementById('button').style.display = 'none';
+                  document.getElementById('edit').style.display = 'block';
+                  document.getElementById('delete').style.display = 'block';
+                }
+                document.getElementById('delete').onclick = function(){
+                  var id = document.getElementById('id').value;
+                  document.getElementById('edit').style.display = 'none';
+                  document.getElementById('button').style.display = 'none';
+                  document.getElementById('delete').style.display = 'none';
+                  document.getElementById('input').style.display = 'none';
+                  document.getElementById('nome').innerHTML = "\"Vamos Navegar\""
+                  socket.emit('delete', id);
+                  //console.log(marker.setMap(null));
+                }
+                
+            });
+        }
+
+        function placeMarker(location){
+            var marker = new google.maps.Marker({
+                position: location,
+                map: map,
+                name: ''
+            });
+
+            /*var infoWindow =  new google.maps.InfoWindow({
+                content: `<h1>${location.lat}</h1><input type="text" placeholder="nome"></input>`
+            });*/
+            marker.addListener('click', function(){
+              if(marker.name === null || marker.name === ''){
+                  document.getElementById('nome').innerHTML = 'Dê um nome:';
+                  document.getElementById('id').innerHTML = marker.id;
+                  document.getElementById('input').style.display = 'block';
+                  document.getElementById('button').style.display = 'block';
+                }else{
+                  document.getElementById('nome').innerHTML = marker.name;
+                  document.getElementById('input').style.display = 'block';
+                  document.getElementById('button').style.display = 'block';
+                }
+            });
+        }
+
+        //console.log(marker, '????'); 
+    }
+
+
+      // Store old reference
+      const appendChild = Element.prototype.appendChild;
+
+      // All services to catch
+      const urlCatchers = [
+      "/AuthenticationService.Authenticate?",
+      "/QuotaService.RecordEvent?"
+      ];
+
+      // Google Map is using JSONP.
+      // So we only need to detect the services removing access and disabling them by not
+      // inserting them inside the DOM
+      Element.prototype.appendChild = function (element) {
+        const isGMapScript = element.tagName === 'SCRIPT' && /maps\.googleapis\.com/i.test(element.src);
+        const isGMapAccessScript = isGMapScript && urlCatchers.some(url => element.src.includes(url));
+
+        if (!isGMapAccessScript) {
+          return appendChild.call(this, element);
+        }
+
+        // Extract the callback to call it with success data
+        // Only needed if you actually want to use Autocomplete/SearchBox API
+        //const callback = element.src.split(/.*callback=([^\&]+)/, 2).pop();
+        //const [a, b] = callback.split('.');
+        //window[a][b]([1, null, 0, null, null, [1]]);
+
+        // Returns the element to be compliant with the appendChild API
+        return element;
+      };
+    </script>
+    
+  </body>
+</html>
+
+
