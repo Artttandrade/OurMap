@@ -1,10 +1,11 @@
 const mysql = require('mysql');
 
+//Adicione aqui as configurações do seu Banco de Dados
 const connection = mysql.createConnection({
-    host: 'localhost',
-    port: '3306',
-    user: 'root',
-    password: 'icomp123',
+    host: '',
+    port: '',
+    user: '',
+    password: '',
     database: 'ourMap'
 });
 
